@@ -1,0 +1,14 @@
+{
+  "name": "compilers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "dev": "nodemon ."
+  },
+  "keywords": [],
+  "author": "nora&anazz",
+  "license": "ISC"
+}
