@@ -1,8 +1,8 @@
-import Tokens from "../def/tokensTypes";
+import Tokens from "./tokensTypes";
 import Digits from "../values/digits";
 import Ops from "../values/ops";
 
 export default interface Token {
     type: Tokens,
-    value: number | Ops| "EOF"
+    value?: number | string | Ops
 }
