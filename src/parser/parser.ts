@@ -4,8 +4,9 @@ import Lexer from "../lexer/lexer";
 import Digits from "../values/digits";
 import Ops from "../values/ops";
 import Token from "../def/token";
-import { AssignmentStatement, BinaryExpression, BlockStatement, BreakStatement, Caseclause, CondtionalExpression, Expression, Factor, Identifier, IfStatement, Literal, MathExpression, Node, operator, Program, Statement, SwitchStatement, Term, UnaryExpression, UnaryOperator, WhileStatement } from "../def/parseTreeNodes";
+import { AssignmentStatement, BinaryExpression, BlockStatement, BreakStatement, Caseclause, Cases, CondtionalExpression, Default, Expression, Identifier, IfStatement, MathExpression, operator, Program, Statement, SwitchStatement, Term, UnaryExpression, UnaryOperator, WhileStatement } from "../def/parseTreeNodes";
 import conditionalOperands from "../lexer/conditionalOperands";
+import { Factor, Node } from "../def/parseTreeNodes";
 
 export default class Parser {
     currentToken: Token | undefined;
@@ -33,23 +34,23 @@ export default class Parser {
     }
     parseProgram(): Program {
         !this.currentToken && (this.currentToken = this.scanner.getNextToken())
-        const Childern = this.parseStatements();
+        const statments = this.parseStatements();
         return {
             Node: "Program",
-            Childern
+            Children: statments
         }
     }
     parseStatements(): Node[] {
-        const nodes: Node[] = []
+        const statments: Node[] = []
         while (this.currentToken?.type !== TokensTypes.EOF) {
             if (this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
             } else {
-                nodes.push(this.parseStatement());
+                statments.push(this.parseStatement());
             }
         }
 
-        return nodes
+        return statments
     }
     parseStatement(): Node {
         // console.log(this.currentToken)
@@ -77,82 +78,144 @@ export default class Parser {
         }
         this.error()
         return {
-            type: "AssignmentStatement",
-            left: this.identifier(),
-            right: this.identifier()
+            Node: "AssignmentStatement",
+            Children: []
         }
 
     }
     parseIfStatement(): IfStatement {
+        const Children: Node[] = []
         this.eat(TokensTypes.IF_KEYWORD)
+        Children.push({
+            Node: "if",
+            Children: []
+        })
         this.eat(TokensTypes.LEFTPARENT)
+        Children.push({
+            Node: "(",
+            Children: []
+        })
         const test = this.parseConditionalExpression()
+        Children.push(test)
         this.eat(TokensTypes.RIGHTPARENT)
+        Children.push({
+            Node: ")",
+            Children: []
+        })
         this.skipNewLines()
         const body = this.parseStatement()
+        Children.push(body)
         this.skipNewLines()
-        let elseBody: Statement | undefined = undefined
+        let elseBody: Node | undefined = undefined
         if (this.currentToken?.type === TokensTypes.ELSE_KEYWORD) {
             this.eat(TokensTypes.ELSE_KEYWORD)
+            Children.push({
+                Node: "else",
+                Children: []
+            })
             elseBody = this.parseStatement()
+            Children.push(elseBody)
         }
         return {
-            type: "IfStatement",
-            test,
-            body,
-            else: elseBody
+            Node: "IfStatement",
+            Children
         }
     }
     parseConditionalExpression(): CondtionalExpression {
+        const Children: Node[] = []
         const left = this.expr()
+        Children.push(left)
         const operand = this.currentToken?.value as string
         if (!conditionalOperands.includes(operand)) {
             this.error()
         }
         this.eat(this.currentToken?.type!)
+        Children.push({
+            Node: operand,
+            Children: []
+        })
         const right = this.expr()
+        Children.push(right)
         return {
-            type: "CondtionalExpression",
-            left,
-            operand,
-            right
+            Node: "CondtionalExpression",
+            Children
         }
     }
     parseSwitchStatement(): SwitchStatement {
         // SWITCH_KEYWORD LEFTPARENT expr RIGHTPARENT LEFTCURL cases RIGHTCURL
+        const Children: Node[] = []
         this.eat(TokensTypes.SWITCH_KEYWORD)
+        Children.push({
+            Node: "switch",
+            Children: []
+        })
         this.eat(TokensTypes.LEFTPARENT)
-        const id = this.identifier()
+        Children.push({
+            Node: "(",
+            Children: []
+        })
+        const id: Identifier = {
+            Node: "Identifier",
+            Children: [],
+            value: this.currentToken?.value as string
+        } 
+        this.eat(TokensTypes.IDENTIFIER)
+        Children.push(id)
         this.eat(TokensTypes.RIGHTPARENT)
+        Children.push({
+            Node: ")",
+            Children: []
+        })
         this.skipNewLines()
         this.eat(TokensTypes.LEFTCURL)
-        const cases = this.parseCases()
-        let defaultt: Statement[] = []
+        Children.push({
+            Node: "{",
+            Children: []
+        })
+        const cases: Cases = {
+            Node: "Cases",
+            Children: this.parseCases()
+        }
+        Children.push(cases)
         if (this.currentToken?.type === TokensTypes.DEFAULT_KEYWORD) {
-            defaultt = this.parseDefault()
+            const defaultt: Default = this.parseDefault()
+            Children.push(defaultt)
         }
         this.eat(TokensTypes.RIGHTCURL)
+        Children.push({
+            Node: "}",
+            Children: []
+        })
         return {
-            type: "SwitchStatement",
-            test: id,
-            cases,
-            default: defaultt
+            Node: "SwitchStatement",
+            Children
         }
     }
-    parseDefault(): Statement[] {
+    parseDefault(): Default {
+        const Children: Node[] = []
         this.skipNewLines()
         this.eat(TokensTypes.DEFAULT_KEYWORD)
+        Children.push({
+            Node: "default",
+            Children: []
+        })
         this.eat(TokensTypes.COLON)
+        Children.push({
+            Node: ":",
+            Children: []
+        })
         this.skipNewLines()
-        const statments: Statement[] = []
         while (this.currentToken?.type !== TokensTypes.RIGHTCURL) {
             if (this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
             } else {
-                statments.push(this.parseStatement());
+                Children.push(this.parseStatement());
             }
         }
-        return statments
+        return {
+            Node: "Default",
+            Children
+        }
     }
     parseCases(): Caseclause[] {
         const cases: Caseclause[] = []
@@ -166,83 +229,137 @@ export default class Parser {
         return cases
     }
     parseCase(): Caseclause {
+        const Children: Node[] = []
         this.eat(TokensTypes.CASE_KEYWORD)
+        Children.push({
+            Node: "case",
+            Children: []
+        })
         const id = this.expr()
+        Children.push(id)
         this.eat(TokensTypes.COLON)
+        Children.push({
+            Node: ":",
+            Children: []
+        })
         this.skipNewLines()
-        const body: Statement[] = []
         while (this.currentToken?.type !== TokensTypes.CASE_KEYWORD && this.currentToken?.type !== TokensTypes.DEFAULT_KEYWORD && this.currentToken?.type !== TokensTypes.RIGHTCURL) {
             if (this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
             } else {
-                body.push(this.parseStatement());
+                Children.push(this.parseStatement());
             }
         }
         return {
-            type: "Caseclause",
-            id,
-            body
+            Node: "Caseclause",
+            Children
         }
     }
     parseBreakStatement(): BreakStatement {
+        const Children: Node[] = []
         this.eat(TokensTypes.BREAK_KEYWORD)
+        Children.push({
+            Node: "break",
+            Children: []
+        })
         this.eat(TokensTypes.SEMI)
+        Children.push({
+            Node: ";",
+            Children: []
+        })
         return {
-            type: "BreakStatement"
+            Node: "BreakStatement",
+            Children
         }
     }
     parseBlockStatement(): BlockStatement {
+        const Children: Node[] = []
         this.eat(TokensTypes.LEFTCURL)
-        const body: Statement[] = []
+        Children.push({
+            Node: "{",
+            Children: []
+        })
         while (this.currentToken?.type !== TokensTypes.RIGHTCURL) {
             if (this.currentToken?.type === TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
             }
             else {
-                body.push(this.parseStatement())
+                Children.push(this.parseStatement())
             }
         }
         this.eat(TokensTypes.RIGHTCURL)
+        Children.push({
+            Node: "}",
+            Children: []
+        })
         return {
-            type: "BlockStatement",
-            body
+            Node: "BlockStatement",
+            Children
         }
     }
     parseWhileStatement(): WhileStatement {
+        const Children: Node[] = []
         this.eat(TokensTypes.WHILE_KEYWORD)
+        Children.push({
+            Node: "while",
+            Children: []
+        })
         this.eat(TokensTypes.LEFTPARENT)
+        Children.push({
+            Node: "(",
+            Children: []
+        })
         const test = this.expr()
+        Children.push(test)
         this.eat(TokensTypes.RIGHTPARENT)
+        Children.push({
+            Node: ")",
+            Children: []
+        })
         const body = this.parseStatement()
+        Children.push(body)
         return {
-            type: "WhileStatement",
-            test,
-            body
+            Node: "WhileStatement",
+            Children
         }
     }
-    parseBinaryOrAssignment(): Statement {
+    parseBinaryOrAssignment(): Node {
         // First Token Identifier
-        const leftIdentifier = this.identifier()
+        const leftIdToken: Identifier = {
+            Node: "Identifier",
+            Children: [],
+            value: this.currentToken?.value as string
+        }
+        this.eat(TokensTypes.IDENTIFIER)
         switch (this.currentToken?.type) {
             case TokensTypes.EQUAL:
-                return this.parseAssignmentStatment(leftIdentifier)
+                return this.parseAssignmentStatment(leftIdToken)
             default:
-                return this.expr(leftIdentifier)
+                return this.expr(leftIdToken)
         }
     }
     parseAssignmentStatment(left: Identifier): AssignmentStatement {
+        const Children: Node[] = []
+        Children.push(left)
         this.eat(TokensTypes.EQUAL)
+        Children.push({
+            Node: "=",
+            Children: []
+        })
         const right = this.expr()
+        Children.push(right)
         this.eat(TokensTypes.SEMI)
+        Children.push({
+            Node: ";",
+            Children: []
+        })
         return {
-            type: "AssignmentStatement",
-            left,
-            right
+            Node: "AssignmentStatement",
+            Children
         }
     }
     expr(left?: Identifier): MathExpression {
         let node
-        const Childern: Node[] = []
         // console.log("expr")
         if (left) {
             node = left
@@ -250,43 +367,44 @@ export default class Parser {
         else {
             node = this.term()
         }
-        Childern.push(node)
+        const Children: Node[] = []
+        Children.push(node)
         // console.log(this.currentToken?.value)
         if (this.currentToken?.value === "+" || this.currentToken?.value === "-") { // Binary
             const op = this.currentToken.value
             this.eat(TokensTypes.OP)
-            Childern.push({
+            Children.push({
                 Node: op,
-                Childern: []
+                Children: []
             })
-            const right = this.expr();
-            Childern.push(right)
+            const right = this.term()
+            Children.push(right)
         }
-
         return {
             Node: "MathExpression",
-            Childern
+            Children
         }
     }
     term(): Term {
         // console.log("term")
-        const Childern: Node[] = []
-        let factor = this.factor()!
-        Childern.push(factor)
+        const Children: Node[] = []
+        let node = this.factor()!
+        Children.push(node)
         // console.log(this.currentToken)
         if (this.currentToken?.value === "*" || this.currentToken?.value === "/") {
             const op = this.currentToken.value
             this.eat(TokensTypes.OP)
-            Childern.push({
+            Children.push({
                 Node: op,
-                Childern: []
+                Children: []
             })
-            const right = this.term();
-            Childern.push(right)
+            const right = this.term()
+            Children.push(right)
+
         }
         return {
             Node: "Term",
-            Childern
+            Children
         }
     }
     factor(): Factor {
@@ -294,101 +412,82 @@ export default class Parser {
         // console.log(this.currentToken)
         // ( expr )
         if (this.currentToken?.type == TokensTypes.LEFTPARENT) {
-            const Childern: Node[] = []
+            const Children: Node[] = []
             this.eat(TokensTypes.LEFTPARENT)
-            Childern.push({
+            Children.push({
                 Node: "(",
-                Childern: []
+                Children: []
             })
             const node = this.expr()
-            Childern.push(node)
+            Children.push(node)
             this.eat(TokensTypes.RIGHTPARENT)
-            Childern.push({
+            Children.push({
                 Node: ")",
-                Childern: []
+                Children: []
             })
             return {
                 Node: "Factor",
-                Childern
+                Children
             }
         }
         // -factor | +factor
         else if (this.currentToken?.value === "-" || this.currentToken?.value === "+") { // Unary
-            const Childern: Node[] = []
-            const op = this.currentToken.value
-            this.eat(TokensTypes.OP)
-            Childern.push({
-                Node: op,
-                Childern: []
-            })
-            const argument = this.factor()!
-            Childern.push(argument)
+            const Children: Node[] = []
+            const unary = this.parseUnaryExpression()
+            Children.push(unary)
             return {
                 Node: "Factor",
-                Childern
+                Children
             };
         }
         // number
         else if (this.currentToken?.type == TokensTypes.INTEGER) {
             // this.error()
-            const Childern: Node[] = []
-            const result = this.number()
-            Childern.push(result)
+            const Children: Node[] = []
+            Children.push({
+                Node: "Number",
+                Children: [],
+                value: this.currentToken.value
+            })
+            this.eat(TokensTypes.INTEGER)
             return {
                 Node: "Factor",
-                Childern
+                Children
             }
         }
         // IDENTIFIER
         else if (this.currentToken?.type == TokensTypes.IDENTIFIER) {
-            const Childern: Node[] = []
-            Childern.push(this.identifier())
+            const Children: Node[] = []
+            Children.push({
+                Node: "Identifier",
+                Children: [],
+                value: this.currentToken.value
+            })
+            this.eat(TokensTypes.IDENTIFIER)
             return {
                 Node: "Factor",
-                Childern
+                Children
             }
         }
         this.error()
         return {
             Node: "Factor",
-            Childern: []
+            Children: []
         }
     }
-    identifier(): Identifier {
-        const name = this.currentToken?.value as string
-        this.eat(TokensTypes.IDENTIFIER)
-        return this.parseId(name)
-    }
-    number(): Literal {
-        const value = this.currentToken?.value as number
-        this.eat(TokensTypes.INTEGER)
-        return this.parseLiteral(value)
-    }
-    parseBinaryExpression(op: operator, left: Expression, right: Expression): BinaryExpression {
+    parseUnaryExpression(): UnaryExpression {
+        const Children: Node[] = []
+        const op = this.currentToken!.value as string
+        this.eat(TokensTypes.OP)
+        Children.push({
+            Node: op,
+            Children: []
+        })
+        const argument = this.factor()!
+        Children.push(argument)
         return {
-            type: "BinaryExpression",
-            op,
-            left,
-            right
-        }
-    }
-    parseUnaryExpression(operator: UnaryOperator, argument: Expression): UnaryExpression {
-        return {
-            type: "UnaryExpression",
-            operator,
-            argument
-        }
-    }
-    parseLiteral(value: number): Literal {
-        return {
-            type: "Literal",
-            value: value
-        }
-    }
-    parseId(name: string): Identifier {
-        return {
-            type: "Identifier",
-            name
+            Node: "UnaryExpression",
+            Children
         }
     }
     skipNewLines() {

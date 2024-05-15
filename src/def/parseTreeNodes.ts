@@ -1,6 +1,7 @@
 export interface Node {
     Node: string
-    Childern: Node[]
+    Children: Node[]
+    value?: string | number
 }
 export interface Factor extends Node {
     Node: "Factor"
@@ -17,7 +18,7 @@ export interface Program extends Node {
 export interface BinaryExpression extends Node {
     Node: "BinaryExpression"
 }
-export interface UnaryExpression extends Node{
+export interface UnaryExpression extends Node{ 
     Node: "UnaryExpression"
 }
 export interface Number extends Node {
@@ -53,8 +54,14 @@ export interface IfStatement extends Node {
 export interface CondtionalExpression extends Node {
     Node: "CondtionalExpression"
 }
+export interface Cases extends Node {
+    Node: "Cases"
+}
+export interface Default extends Node {
+    Node: "Default"
+}
 export interface SyntaxNode extends Node {
-    Node: ";" | "{" | "}" | "+" | "-" | "*" | "/" | "=" | "!" | ">" | "<" | "(" | ")" | "if" | "else" | "while" | "switch" | "case" | "break" | "default" | "do" | "for"
+    Node: ";" | ":" | "{" | "}" | "+" | "-" | "*" | "/" | "=" | "!" | ">" | "<" | "(" | ")" | "if" | "else" | "while" | "switch" | "case" | "break" | "default" | "do" | "for"
 }
 export type UnaryOperator = "+" | "-"
 export type operator = "+" | "-" | "/" | "*"
