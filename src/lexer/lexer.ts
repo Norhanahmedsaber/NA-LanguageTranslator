@@ -124,7 +124,7 @@ export default class Lexer {
         this.error()
     }
     error() {
-        throw new Error("Unexpected Token")
+        throw new Error("Unexpected Character: " + this.currentChar)
     }
     advance() {
         if (this.pos >= this.text.length) {

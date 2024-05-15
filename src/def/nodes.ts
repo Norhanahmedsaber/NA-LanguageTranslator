@@ -77,4 +77,21 @@ WhileStatement |
 BlockStatement |
 SwitchStatement|
 BreakStatement |
-IfStatement
+IfStatement |
+all
+export interface all {
+    type: string
+    test: Expression
+    body: Statement
+    left: Expression
+    right: Expression
+    op: operator
+    operator: UnaryExpression
+    argument: Expression
+    value: number
+    name: string
+    case: Caseclause[]
+    default: Statement[]
+    id: Expression
+    else: Statement
+}
