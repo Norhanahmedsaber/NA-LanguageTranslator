@@ -8,6 +8,9 @@ export interface Factor extends Node {
 export interface Term extends Node {
     Node: "Term"
 }
+export interface MathExpression extends Node {
+    Node: "MathExpression"
+}
 export interface Program extends Node {
     Node: "Program"
 }
