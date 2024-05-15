@@ -1,7 +1,8 @@
 {
     "watch": [
         "src",
-        "./testing.na"
+        "./testing.na",
+        "./index.js"
     ],
     "ext": "ts,na",
     "exec":"ts-node ./src/index.ts"

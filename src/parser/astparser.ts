@@ -4,7 +4,7 @@ import Lexer from "../lexer/lexer";
 import Digits from "../values/digits";
 import Ops from "../values/ops";
 import Token from "../def/token";
-import { AssignmentStatement, BinaryExpression, BlockStatement, BreakStatement, Caseclause, CondtionalExpression, Expression, Factor, Identifier, IfStatement, Literal, MathExpression, Node, operator, Program, Statement, SwitchStatement, Term, UnaryExpression, UnaryOperator, WhileStatement } from "../def/parseTreeNodes";
+import { AssignmentStatement, BinaryExpression, BlockStatement, BreakStatement, Caseclause, CondtionalExpression, Expression, Identifier, IfStatement, Literal, operator, Program, Statement, SwitchStatement, UnaryExpression, UnaryOperator, WhileStatement } from "../def/nodes";
 import conditionalOperands from "../lexer/conditionalOperands";
 
 export default class Parser {
@@ -12,7 +12,7 @@ export default class Parser {
     scanner: Lexer
     constructor(text: string) {
         this.currentToken = undefined
-        this.scanner = new Lexer(text)
+        this.scanner=new Lexer(text)
     }
 
     eat(TokenType: TokensTypes) {
@@ -26,37 +26,37 @@ export default class Parser {
 
     }
     error(expectedToken?: TokensTypes) {
-        if (expectedToken) {
+        if(expectedToken) {
             throw new Error("Expected Token: " + expectedToken)
         }
         throw new Error("Unexpected Token: " + this.currentToken?.type)
     }
     parseProgram(): Program {
         !this.currentToken && (this.currentToken = this.scanner.getNextToken())
-        const Childern = this.parseStatements();
+        const statments = this.parseStatements();
         return {
-            Node: "Program",
-            Childern
+            type: "Program",
+            body: statments
         }
     }
-    parseStatements(): Node[] {
-        const nodes: Node[] = []
-        while (this.currentToken?.type !== TokensTypes.EOF) {
-            if (this.currentToken?.type == TokensTypes.NEWLINE) {
+    parseStatements(): Statement[] {
+        const statments: Statement[] = []
+        while(this.currentToken?.type !== TokensTypes.EOF) {
+            if(this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
-            } else {
-                nodes.push(this.parseStatement());
+            }else {
+                statments.push(this.parseStatement());
             }
         }
 
-        return nodes
+        return statments
     }
-    parseStatement(): Node {
+    parseStatement():Statement{
         // console.log(this.currentToken)
         // Stmt: Assignstmt | expr
         // BinaryExpression -> OP | INTEGER | LEFTPARENT | IDENTIFIER
         this.skipNewLines()
-        switch (this.currentToken?.type) {
+        switch (this.currentToken?.type){
             case TokensTypes.OP:
             case TokensTypes.LEFTPARENT:
             case TokensTypes.INTEGER:
@@ -77,13 +77,13 @@ export default class Parser {
         }
         this.error()
         return {
-            type: "AssignmentStatement",
-            left: this.identifier(),
+            type :"AssignmentStatement",
+            left : this.identifier(),
             right: this.identifier()
         }
 
     }
-    parseIfStatement(): IfStatement {
+    parseIfStatement():IfStatement{
         this.eat(TokensTypes.IF_KEYWORD)
         this.eat(TokensTypes.LEFTPARENT)
         const test = this.parseConditionalExpression()
@@ -91,8 +91,8 @@ export default class Parser {
         this.skipNewLines()
         const body = this.parseStatement()
         this.skipNewLines()
-        let elseBody: Statement | undefined = undefined
-        if (this.currentToken?.type === TokensTypes.ELSE_KEYWORD) {
+        let elseBody : Statement | undefined = undefined 
+        if(this.currentToken?.type === TokensTypes.ELSE_KEYWORD) {
             this.eat(TokensTypes.ELSE_KEYWORD)
             elseBody = this.parseStatement()
         }
@@ -103,14 +103,14 @@ export default class Parser {
             else: elseBody
         }
     }
-    parseConditionalExpression(): CondtionalExpression {
-        const left = this.expr()
-        const operand = this.currentToken?.value as string
-        if (!conditionalOperands.includes(operand)) {
+    parseConditionalExpression(): CondtionalExpression{
+        const left= this.expr()
+        const operand=this.currentToken?.value as string
+        if(!conditionalOperands.includes(operand)) {
             this.error()
         }
         this.eat(this.currentToken?.type!)
-        const right = this.expr()
+        const right=this.expr()
         return {
             type: "CondtionalExpression",
             left,
@@ -118,7 +118,7 @@ export default class Parser {
             right
         }
     }
-    parseSwitchStatement(): SwitchStatement {
+    parseSwitchStatement():SwitchStatement{
         // SWITCH_KEYWORD LEFTPARENT expr RIGHTPARENT LEFTCURL cases RIGHTCURL
         this.eat(TokensTypes.SWITCH_KEYWORD)
         this.eat(TokensTypes.LEFTPARENT)
@@ -128,53 +128,53 @@ export default class Parser {
         this.eat(TokensTypes.LEFTCURL)
         const cases = this.parseCases()
         let defaultt: Statement[] = []
-        if (this.currentToken?.type === TokensTypes.DEFAULT_KEYWORD) {
+        if(this.currentToken?.type===TokensTypes.DEFAULT_KEYWORD){
             defaultt = this.parseDefault()
         }
         this.eat(TokensTypes.RIGHTCURL)
-        return {
-            type: "SwitchStatement",
+        return{
+            type:"SwitchStatement",
             test: id,
             cases,
             default: defaultt
         }
-    }
-    parseDefault(): Statement[] {
+     }
+     parseDefault(): Statement[] {
         this.skipNewLines()
         this.eat(TokensTypes.DEFAULT_KEYWORD)
         this.eat(TokensTypes.COLON)
         this.skipNewLines()
         const statments: Statement[] = []
-        while (this.currentToken?.type !== TokensTypes.RIGHTCURL) {
-            if (this.currentToken?.type == TokensTypes.NEWLINE) {
+        while(this.currentToken?.type !== TokensTypes.RIGHTCURL) {
+            if(this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
-            } else {
+            }else {
                 statments.push(this.parseStatement());
             }
         }
         return statments
-    }
-    parseCases(): Caseclause[] {
+     }
+     parseCases():Caseclause[]{
         const cases: Caseclause[] = []
-        while (this.currentToken?.type !== TokensTypes.DEFAULT_KEYWORD && this.currentToken?.type !== TokensTypes.RIGHTCURL) {
-            if (this.currentToken?.type == TokensTypes.NEWLINE) {
+        while(this.currentToken?.type !== TokensTypes.DEFAULT_KEYWORD && this.currentToken?.type !== TokensTypes.RIGHTCURL) {
+            if(this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
-            } else {
+            }else {
                 cases.push(this.parseCase());
             }
         }
         return cases
-    }
-    parseCase(): Caseclause {
+     }
+     parseCase():Caseclause{
         this.eat(TokensTypes.CASE_KEYWORD)
         const id = this.expr()
         this.eat(TokensTypes.COLON)
         this.skipNewLines()
         const body: Statement[] = []
-        while (this.currentToken?.type !== TokensTypes.CASE_KEYWORD && this.currentToken?.type !== TokensTypes.DEFAULT_KEYWORD && this.currentToken?.type !== TokensTypes.RIGHTCURL) {
-            if (this.currentToken?.type == TokensTypes.NEWLINE) {
+        while(this.currentToken?.type !== TokensTypes.CASE_KEYWORD && this.currentToken?.type !== TokensTypes.DEFAULT_KEYWORD && this.currentToken?.type !== TokensTypes.RIGHTCURL) {
+            if(this.currentToken?.type == TokensTypes.NEWLINE) {
                 this.eat(TokensTypes.NEWLINE)
-            } else {
+            }else {
                 body.push(this.parseStatement());
             }
         }
@@ -183,19 +183,19 @@ export default class Parser {
             id,
             body
         }
-    }
-    parseBreakStatement(): BreakStatement {
+     }
+     parseBreakStatement():BreakStatement{
         this.eat(TokensTypes.BREAK_KEYWORD)
         this.eat(TokensTypes.SEMI)
         return {
-            type: "BreakStatement"
+            type:"BreakStatement"
         }
-    }
-    parseBlockStatement(): BlockStatement {
+     }
+    parseBlockStatement():BlockStatement{
         this.eat(TokensTypes.LEFTCURL)
-        const body: Statement[] = []
-        while (this.currentToken?.type !== TokensTypes.RIGHTCURL) {
-            if (this.currentToken?.type === TokensTypes.NEWLINE) {
+        const body:Statement[] = []
+        while(this.currentToken?.type!==TokensTypes.RIGHTCURL){
+            if(this.currentToken?.type=== TokensTypes.NEWLINE){
                 this.eat(TokensTypes.NEWLINE)
             }
             else {
@@ -203,19 +203,19 @@ export default class Parser {
             }
         }
         this.eat(TokensTypes.RIGHTCURL)
-        return {
-            type: "BlockStatement",
+        return{
+            type:"BlockStatement",
             body
         }
     }
-    parseWhileStatement(): WhileStatement {
+    parseWhileStatement():WhileStatement{
         this.eat(TokensTypes.WHILE_KEYWORD)
         this.eat(TokensTypes.LEFTPARENT)
-        const test = this.expr()
+        const test=this.expr()
         this.eat(TokensTypes.RIGHTPARENT)
         const body = this.parseStatement()
-        return {
-            type: "WhileStatement",
+        return{
+            type:"WhileStatement",
             test,
             body
         }
@@ -223,10 +223,10 @@ export default class Parser {
     parseBinaryOrAssignment(): Statement {
         // First Token Identifier
         const leftIdentifier = this.identifier()
-        switch (this.currentToken?.type) {
+        switch(this.currentToken?.type) {
             case TokensTypes.EQUAL:
                 return this.parseAssignmentStatment(leftIdentifier)
-            default:
+            default :
                 return this.expr(leftIdentifier)
         }
     }
@@ -240,126 +240,71 @@ export default class Parser {
             right
         }
     }
-    expr(left?: Identifier): MathExpression {
+    expr(left?:Identifier): Expression  {
         let node
-        const Childern: Node[] = []
         // console.log("expr")
-        if (left) {
-            node = left
+        if(left){
+            node= left 
         }
         else {
-            node = this.term()
+             node = this.term()
         }
-        Childern.push(node)
         // console.log(this.currentToken?.value)
-        if (this.currentToken?.value === "+" || this.currentToken?.value === "-") { // Binary
+        while(this.currentToken?.value === "+" || this.currentToken?.value === "-"){ // Binary
             const op = this.currentToken.value
             this.eat(TokensTypes.OP)
-            Childern.push({
-                Node: op,
-                Childern: []
-            })
-            const right = this.expr();
-            Childern.push(right)
+            node = this.parseBinaryExpression(op, node, this.term())
         }
 
-        return {
-            Node: "MathExpression",
-            Childern
-        }
+        return node
     }
-    term(): Term {
+    term(): Expression {
         // console.log("term")
-        const Childern: Node[] = []
-        let factor = this.factor()!
-        Childern.push(factor)
+        let node = this.factor()!
         // console.log(this.currentToken)
-        if (this.currentToken?.value === "*" || this.currentToken?.value === "/") {
+        while(this.currentToken?.value === "*" || this.currentToken?.value === "/"){
             const op = this.currentToken.value
             this.eat(TokensTypes.OP)
-            Childern.push({
-                Node: op,
-                Childern: []
-            })
-            const right = this.term();
-            Childern.push(right)
+            node = this.parseBinaryExpression(op, node, this.factor()!);
+            
         }
-        return {
-            Node: "Term",
-            Childern
-        }
+        return node
     }
-    factor(): Factor {
+    factor(): Expression | undefined{
         // console.log("factor")
         // console.log(this.currentToken)
         // ( expr )
-        if (this.currentToken?.type == TokensTypes.LEFTPARENT) {
-            const Childern: Node[] = []
+        if(this.currentToken?.type==TokensTypes.LEFTPARENT){
             this.eat(TokensTypes.LEFTPARENT)
-            Childern.push({
-                Node: "(",
-                Childern: []
-            })
             const node = this.expr()
-            Childern.push(node)
             this.eat(TokensTypes.RIGHTPARENT)
-            Childern.push({
-                Node: ")",
-                Childern: []
-            })
-            return {
-                Node: "Factor",
-                Childern
-            }
+            return node
         }
         // -factor | +factor
-        else if (this.currentToken?.value === "-" || this.currentToken?.value === "+") { // Unary
-            const Childern: Node[] = []
+        else if(this.currentToken?.value === "-" || this.currentToken?.value === "+") { // Unary
             const op = this.currentToken.value
             this.eat(TokensTypes.OP)
-            Childern.push({
-                Node: op,
-                Childern: []
-            })
             const argument = this.factor()!
-            Childern.push(argument)
-            return {
-                Node: "Factor",
-                Childern
-            };
+            return this.parseUnaryExpression(op, argument);
         }
         // number
-        else if (this.currentToken?.type == TokensTypes.INTEGER) {
+        else if(this.currentToken?.type == TokensTypes.INTEGER) {
             // this.error()
-            const Childern: Node[] = []
-            const result = this.number()
-            Childern.push(result)
-            return {
-                Node: "Factor",
-                Childern
-            }
+          const  result = this.number()
+          return result
         }
         // IDENTIFIER
-        else if (this.currentToken?.type == TokensTypes.IDENTIFIER) {
-            const Childern: Node[] = []
-            Childern.push(this.identifier())
-            return {
-                Node: "Factor",
-                Childern
-            }
+        else if( this.currentToken?.type ==TokensTypes.IDENTIFIER){
+            return this.identifier()
         }
         this.error()
-        return {
-            Node: "Factor",
-            Childern: []
-        }
     }
     identifier(): Identifier {
         const name = this.currentToken?.value as string
         this.eat(TokensTypes.IDENTIFIER)
         return this.parseId(name)
     }
-    number(): Literal {
+    number():Literal {
         const value = this.currentToken?.value as number
         this.eat(TokensTypes.INTEGER)
         return this.parseLiteral(value)
@@ -379,20 +324,20 @@ export default class Parser {
             argument
         }
     }
-    parseLiteral(value: number): Literal {
-        return {
+    parseLiteral(value: number):Literal {
+        return  {
             type: "Literal",
             value: value
         }
     }
-    parseId(name: string): Identifier {
+    parseId(name:string):Identifier{
         return {
-            type: "Identifier",
+            type : "Identifier",
             name
         }
     }
-    skipNewLines() {
-        while (this.currentToken?.type === TokensTypes.NEWLINE) {
+    skipNewLines(){
+        while(this.currentToken?.type===TokensTypes.NEWLINE){
             this.eat(TokensTypes.NEWLINE)
         }
     }
