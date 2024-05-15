@@ -377,7 +377,7 @@ export default class Parser {
                 Node: op,
                 Children: []
             })
-            const right = this.term()
+            const right = this.expr()
             Children.push(right)
         }
         return {
