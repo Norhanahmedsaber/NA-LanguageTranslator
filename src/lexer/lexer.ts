@@ -12,11 +12,16 @@ export default class Lexer {
     currentChar: string | undefined;
     pos: number;
     text: string;
-
-    constructor(text: string) {
+    line: number;
+    col: number;
+    fileName:string;
+    constructor(text: string , fileName:string) {
         this.currentChar = text[0]
         this.text = text
         this.pos = 0
+        this.line = 1
+        this.col = 1
+        this.fileName=fileName
     }
     skipWhiteSpaces() {
         while (this.currentChar == " ") {
@@ -28,7 +33,9 @@ export default class Lexer {
         this.skipWhiteSpaces()
         if (this.currentChar === undefined) {
             return {
-                type: TokensTypes.EOF
+                type: TokensTypes.EOF,
+                line: this.line,
+                col: this.col
             }
         }
         let token = tokenLookup[this.text[this.pos].charCodeAt(0)];
@@ -46,6 +53,8 @@ export default class Lexer {
                 this.advance()
                 return {
                     type: token,
+                    line: this.line,
+                    col: this.col
                 }
             case TokensTypes.INTEGER:
                 return this.scanInteger()
@@ -54,83 +63,148 @@ export default class Lexer {
                 this.advance()
                 return {
                     type: TokensTypes.OP,
-                    value: op
+                    value: op,
+                    line: this.line,
+                    col: this.col
                 }
             case TokensTypes.IDENTIFIER:
-                return this.scanIdentifier()    
+                return this.scanIdentifier()
             case TokensTypes.EQUAL:  // '=', '==', '==='
                 this.advance()
-                if(this.currentChar=== "="){
+                if (this.currentChar === "=") {
                     this.advance()
-                    if(this.currentChar==="="){
+                    if (this.currentChar === "=") {
                         this.advance()
-                        return{
-                            type:TokensTypes.STRICT_EQUAL,
-                            value: "==="
+                        return {
+                            type: TokensTypes.STRICT_EQUAL,
+                            value: "===",
+                            line: this.line,
+                            col: this.col
                         }
                     }
-                    return{
-                        type:TokensTypes.LOOSE_EQUAL,
-                        value: "=="
-                    }
-                }else{
                     return {
-                        type:TokensTypes.EQUAL
+                        type: TokensTypes.LOOSE_EQUAL,
+                        value: "==",
+                        line: this.line,
+                        col: this.col
+                    }
+                } else {
+                    return {
+                        type: TokensTypes.EQUAL,
+                        line: this.line,
+                        col: this.col
                     }
                 }
             case TokensTypes.GREATER_THAN: // '>', '>='
-            this.advance() 
-            if(this.currentChar==="="){
-                return {
-                    type:TokensTypes.GREATER_THAN_EQUAL,
-                    value: ">="
-                }
-            }
-            return {
-                type:TokensTypes.GREATER_THAN,
-                value: ">"
-            }
-            case TokensTypes.LESS_THAN: // '<', '<='
-            this.advance() 
-            if(this.currentChar==="="){
-                return {
-                    type:TokensTypes.LESS_THAN_EQUAL,
-                    value: "<="
-                }
-            }
-            return {
-                type:TokensTypes.LESS_THAN,
-                value: "<"
-            }
-            case TokensTypes.NOT: // '!', '!=',"!==" to dooo
-            this.advance() 
-            if(this.currentChar==="="){
                 this.advance()
-                return {
-                    type:TokensTypes.NOT_EQUAL,
-                    value: "!="
+                if (this.currentChar === "=") {
+                    return {
+                        type: TokensTypes.GREATER_THAN_EQUAL,
+                        value: ">=",
+                        line: this.line,
+                        col: this.col
+                    }
                 }
-            }
-            return {
-                type:TokensTypes.NOT
-            }
+                return {
+                    type: TokensTypes.GREATER_THAN,
+                    value: ">",
+                    line: this.line,
+                    col: this.col
+                }
+            case TokensTypes.AND: // '&&'
+                this.advance()
+                if (this.currentChar === "&") {
+                    this.advance()
+                    return {
+                        type: TokensTypes.AND,
+                        value: "&&",
+                        line: this.line,
+                        col: this.col
+                    }
+                }
+                this.error()
+                return {
+                    type: TokensTypes.GREATER_THAN,
+                    value: "",
+                    line: this.line,
+                    col: this.col
+                }
+            case TokensTypes.OR: // '||'
+                this.advance()
+                if (this.currentChar == "|") {
+                    this.advance()
+                    return {
+                        type: TokensTypes.OR,
+                        value: "||",
+                        line: this.line,
+                        col: this.col
+                    }
+                }
+                this.error()
+                return {
+                    type: TokensTypes.GREATER_THAN,
+                    value: "",
+                    line: this.line,
+                    col: this.col
+                }
+            case TokensTypes.LESS_THAN: // '<', '<='
+                this.advance()
+                if (this.currentChar === "=") {
+                    this.advance()
+                    return {
+                        type: TokensTypes.LESS_THAN_EQUAL,
+                        value: "<=",
+                        line: this.line,
+                        col: this.col
+                    }
+                }
+                return {
+                    type: TokensTypes.LESS_THAN,
+                    value: "<",
+                    line: this.line,
+                    col: this.col
+                }
+            case TokensTypes.NOT: // '!', '!=',"!==" to dooo
+                this.advance()
+                if (this.currentChar === "=") {
+                    this.advance()
+                    return {
+                        type: TokensTypes.NOT_EQUAL,
+                        value: "!=",
+                        line: this.line,
+                        col: this.col
+                    }
+                }
+                return {
+                    type: TokensTypes.NOT,
+                    line: this.line,
+                    col: this.col
+                }
             case TokensTypes.EOF:
                 return {
                     type: TokensTypes.EOF,
-                    value: "EOF"
+                    value: "EOF",
+                    line: this.line,
+                    col: this.col
                 }
 
         }
         this.error()
     }
     error() {
-        throw new Error("Unexpected Character: " + this.currentChar)
+        throw new Error("Unexpected Character: " + this.currentChar + "\n\tat: " + this.fileName + ":" + this.line + ":" + this.col + "\n")
     }
     advance() {
         if (this.pos >= this.text.length) {
             this.currentChar = undefined
         } else {
             this.pos += 1
+            if (this.text[this.pos] == '\n') {
+                this.line += 1;
+                this.col = 1;
+            } else {
+                this.col += 1;
+            }
             this.currentChar = this.text[this.pos]
         }
     }
@@ -142,7 +216,9 @@ export default class Lexer {
         }
         return {
             type: TokensTypes.INTEGER,
-            value: parseInt(num)
+            value: parseInt(num),
+            line: this.line,
+            col: this.col
         }
 
     }
@@ -162,12 +238,16 @@ export default class Lexer {
                 }
             })
             return {
-                type
+                type,
+                line: this.line,
+                col: this.col
             }
         }
         return {
             type: TokensTypes.IDENTIFIER,
-            value: id
+            value: id,
+            line: this.line,
+            col: this.col
         }
     }
 }

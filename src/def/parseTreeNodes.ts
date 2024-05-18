@@ -6,17 +6,17 @@ export interface Node {
 export interface Factor extends Node {
     Node: "Factor"
 }
+export interface DoWhileStatement extends Node{
+    Node : "DoWhileStatement"
+}
 export interface Term extends Node {
     Node: "Term"
 }
-export interface MathExpression extends Node {
-    Node: "MathExpression"
+export interface Expr extends Node {
+    Node: "Expr"
 }
 export interface Program extends Node {
     Node: "Program"
-}
-export interface BinaryExpression extends Node {
-    Node: "BinaryExpression"
 }
 export interface UnaryExpression extends Node{ 
     Node: "UnaryExpression"
@@ -34,7 +34,6 @@ export interface AssignmentStatement extends Node {
 }
 export interface WhileStatement extends Node{
     Node: "WhileStatement"
-
 }
 export interface BlockStatement extends Node {
     Node: "BlockStatement"
@@ -54,26 +53,31 @@ export interface IfStatement extends Node {
 export interface CondtionalExpression extends Node {
     Node: "CondtionalExpression"
 }
+export interface LogicalExpression extends Node {
+    Node: "LogicalExpression"
+}
+export interface ExpressionStatement extends Node {
+    Node: "ExpressionStatement"
+}
 export interface Cases extends Node {
     Node: "Cases"
 }
 export interface Default extends Node {
     Node: "Default"
 }
+export interface Expression extends Node {
+    Node: "Expression"
+}
+export interface ElseStatement extends Node {
+    Node: "ElseStatement"
+}
 export interface SyntaxNode extends Node {
     Node: ";" | ":" | "{" | "}" | "+" | "-" | "*" | "/" | "=" | "!" | ">" | "<" | "(" | ")" | "if" | "else" | "while" | "switch" | "case" | "break" | "default" | "do" | "for"
 }
 export type UnaryOperator = "+" | "-"
 export type operator = "+" | "-" | "/" | "*"
-export type Expression = 
-BinaryExpression | 
-UnaryExpression | 
-Number |
-CondtionalExpression|
-Identifier
 export type Statement = 
-AssignmentStatement | 
-Expression     |
+AssignmentStatement |
 WhileStatement | 
 BlockStatement |
 SwitchStatement|

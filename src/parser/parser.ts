@@ -4,16 +4,20 @@ import Lexer from "../lexer/lexer";
 import Digits from "../values/digits";
 import Ops from "../values/ops";
 import Token from "../def/token";
-import { AssignmentStatement, BinaryExpression, BlockStatement, BreakStatement, Caseclause, Cases, CondtionalExpression, Default, Expression, Identifier, IfStatement, MathExpression, operator, Program, Statement, SwitchStatement, Term, UnaryExpression, UnaryOperator, WhileStatement } from "../def/parseTreeNodes";
+import { AssignmentStatement, BlockStatement, BreakStatement, Caseclause, Cases, CondtionalExpression, Default, DoWhileStatement, ElseStatement, Expr, Expression, ExpressionStatement, Identifier, IfStatement, LogicalExpression, operator, Program, Statement, SwitchStatement, SyntaxNode, Term, UnaryExpression, UnaryOperator, WhileStatement } from "../def/parseTreeNodes";
 import conditionalOperands from "../lexer/conditionalOperands";
 import { Factor, Node } from "../def/parseTreeNodes";
+import tokenMap from "../tokenSyntax/tokenMap";
+import logicalOperands from "../lexer/logicalOperands";
 
 export default class Parser {
     currentToken: Token | undefined;
-    scanner: Lexer
-    constructor(text: string) {
+    scanner: Lexer;
+    fileName: string
+    constructor(text: string, fileName: string) {
         this.currentToken = undefined
-        this.scanner = new Lexer(text)
+        this.scanner = new Lexer(text, fileName)
+        this.fileName = fileName
     }
 
     eat(TokenType: TokensTypes) {
@@ -27,10 +31,12 @@ export default class Parser {
 
     }
     error(expectedToken?: TokensTypes) {
-        if (expectedToken) {
-            throw new Error("Expected Token: " + expectedToken)
-        }
-        throw new Error("Unexpected Token: " + this.currentToken?.type)
+        // if (expectedToken) {
+        //     throw new Error("Expected Token: " + tokenMap[expectedToken] + "\n\tat: " + this.fileName + ":" + this.currentToken?.line + ":" + this.currentToken?.col + "\n")
+        // }
+        const currentTokenType = this.currentToken?.type!
+        const errorMessage = (this.currentToken?.value) ? (this.currentToken?.value)?.toString() : (tokenMap[currentTokenType])
+        throw new Error("Unexpected Token: " + errorMessage + "\n\tat: " + this.fileName + ":" + this.currentToken?.line + ":" + this.currentToken?.col + "\n")
     }
     parseProgram(): Program {
         !this.currentToken && (this.currentToken = this.scanner.getNextToken())
@@ -61,9 +67,9 @@ export default class Parser {
             case TokensTypes.OP:
             case TokensTypes.LEFTPARENT:
             case TokensTypes.INTEGER:
-                return this.expr()
+                return this.parseExpressionStatement()
             case TokensTypes.IDENTIFIER:
-                return this.parseBinaryOrAssignment()
+                return this.parseExpressionOrAssignmentStatement()
             case TokensTypes.WHILE_KEYWORD:
                 return this.parseWhileStatement()
             case TokensTypes.LEFTCURL:
@@ -74,6 +80,8 @@ export default class Parser {
                 return this.parseBreakStatement()
             case TokensTypes.IF_KEYWORD:
                 return this.parseIfStatement()
+            case TokensTypes.DO_KEYWORD:
+                return this.parseDoWhileStatement()
 
         }
         this.error()
@@ -82,6 +90,68 @@ export default class Parser {
             Children: []
         }
 
+    }
+    parseDoWhileStatement(): DoWhileStatement {
+        const Children: Node[] = []
+        this.eat(TokensTypes.DO_KEYWORD)
+        Children.push({
+            Node: "do",
+            Children: []
+        } as SyntaxNode)
+        const stmt = this.parseStatement()
+        Children.push(stmt)
+        this.eat(TokensTypes.WHILE_KEYWORD)
+        Children.push({
+            Node: "while",
+            Children: []
+        } as SyntaxNode)
+        this.eat(TokensTypes.LEFTPARENT)
+        Children.push({
+            Node: "(",
+            Children: []
+        })
+        const test = this.parseExpression()
+        Children.push(test)
+        this.eat(TokensTypes.RIGHTPARENT)
+        Children.push({
+            Node: ")",
+            Children: []
+        })
+        return {
+            Node: "DoWhileStatement",
+            Children
+        }
+    }
+
+    parseExpressionStatement(left?: Identifier): ExpressionStatement {
+        const Children: Node[] = []
+        let expression = this.parseExpression(left);
+        Children.push(expression)
+        this.eat(TokensTypes.SEMI)
+        Children.push({
+            Node: ";",
+            Children: []
+        } as SyntaxNode)
+
+        return {
+            Node: "ExpressionStatement",
+            Children
+        }
+    }
+    parseExpression(left?: Node): Expression {
+        let node: Node = this.expr(left)
+        if (conditionalOperands.includes(this.currentToken?.value as string)) {
+            node = this.parseConditionalExpression(node)
+        }
+        if (logicalOperands.includes(this.currentToken?.value as string)) {
+            node = this.parseLogical(node)
+        }
+        const Children: Node[] = []
+        Children.push(node)
+        return {
+            Node: "Expression",
+            Children
+        }
     }
     parseIfStatement(): IfStatement {
         const Children: Node[] = []
@@ -95,7 +165,7 @@ export default class Parser {
             Node: "(",
             Children: []
         })
-        const test = this.parseConditionalExpression()
+        const test = this.parseExpression()
         Children.push(test)
         this.eat(TokensTypes.RIGHTPARENT)
         Children.push({
@@ -106,36 +176,52 @@ export default class Parser {
         const body = this.parseStatement()
         Children.push(body)
         this.skipNewLines()
-        let elseBody: Node | undefined = undefined
         if (this.currentToken?.type === TokensTypes.ELSE_KEYWORD) {
             this.eat(TokensTypes.ELSE_KEYWORD)
-            Children.push({
-                Node: "else",
-                Children: []
-            })
-            elseBody = this.parseStatement()
-            Children.push(elseBody)
+            const Else = this.parseElseStatement()
+            Children.push(Else)
         }
         return {
             Node: "IfStatement",
             Children
         }
     }
-    parseConditionalExpression(): CondtionalExpression {
+    parseElseStatement(): ElseStatement {
         const Children: Node[] = []
-        const left = this.expr()
-        Children.push(left)
-        const operand = this.currentToken?.value as string
-        if (!conditionalOperands.includes(operand)) {
-            this.error()
-        }
-        this.eat(this.currentToken?.type!)
         Children.push({
-            Node: operand,
+            Node: "else",
             Children: []
         })
-        const right = this.expr()
-        Children.push(right)
+        let elseBody = this.parseStatement()
+        Children.push(elseBody)
+        return {
+            Node: "ElseStatement",
+            Children
+        }
+    }
+
+    parseConditionalExpression(left?: Node): CondtionalExpression {
+        let node
+        // console.log("expr")
+        if (left) {
+            node = left
+        }
+        else {
+            node = this.expr()
+        }
+        const Children: Node[] = []
+        Children.push(node)
+        const operand = this.currentToken?.value as string
+        if (conditionalOperands.includes(operand)) {
+            this.eat(this.currentToken?.type!)
+            Children.push({
+                Node: operand,
+                Children: []
+            })
+            const right = this.expr()
+            Children.push(right)
+        }
+
         return {
             Node: "CondtionalExpression",
             Children
@@ -158,7 +244,7 @@ export default class Parser {
             Node: "Identifier",
             Children: [],
             value: this.currentToken?.value as string
-        } 
+        }
         this.eat(TokensTypes.IDENTIFIER)
         Children.push(id)
         this.eat(TokensTypes.RIGHTPARENT)
@@ -235,7 +321,7 @@ export default class Parser {
             Node: "case",
             Children: []
         })
-        const id = this.expr()
+        const id = this.factor()
         Children.push(id)
         this.eat(TokensTypes.COLON)
         Children.push({
@@ -309,7 +395,7 @@ export default class Parser {
             Node: "(",
             Children: []
         })
-        const test = this.expr()
+        const test = this.parseExpression()
         Children.push(test)
         this.eat(TokensTypes.RIGHTPARENT)
         Children.push({
@@ -323,7 +409,7 @@ export default class Parser {
             Children
         }
     }
-    parseBinaryOrAssignment(): Node {
+    parseExpressionOrAssignmentStatement(): Node {
         // First Token Identifier
         const leftIdToken: Identifier = {
             Node: "Identifier",
@@ -335,7 +421,7 @@ export default class Parser {
             case TokensTypes.EQUAL:
                 return this.parseAssignmentStatment(leftIdToken)
             default:
-                return this.expr(leftIdToken)
+                return this.parseExpressionStatement(leftIdToken)
         }
     }
     parseAssignmentStatment(left: Identifier): AssignmentStatement {
@@ -358,7 +444,44 @@ export default class Parser {
             Children
         }
     }
-    expr(left?: Identifier): MathExpression {
+    parseLogical(left?: Node): LogicalExpression {
+        let node
+        if (left) {
+            node = left
+        }
+        else {
+            node = this.parseConditionalExpression()
+        }
+        const Children: Node[] = []
+        Children.push(node)
+        // console.log(this.currentToken?.value)
+        if (this.currentToken?.type === TokensTypes.OR || this.currentToken?.type === TokensTypes.AND) { // Binary
+            const lop = this.currentToken.value as string
+            if (this.currentToken.type === TokensTypes.AND) {
+                this.eat(TokensTypes.AND)
+                Children.push({
+                    Node: lop,
+                    Children: []
+                })
+            }
+            else {
+                this.eat(TokensTypes.OR)
+                Children.push({
+                    Node: lop,
+                    Children: []
+                })
+            }
+
+            const right = this.parseLogical()
+            Children.push(right)
+        }
+        return {
+            Node: "LogicalExpression",
+            Children
+        }
+    }
+
+    expr(left?: Node): Expr {
         let node
         // console.log("expr")
         if (left) {
@@ -381,7 +504,7 @@ export default class Parser {
             Children.push(right)
         }
         return {
-            Node: "MathExpression",
+            Node: "Expr",
             Children
         }
     }
