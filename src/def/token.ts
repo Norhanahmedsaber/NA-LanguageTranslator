@@ -5,4 +5,6 @@ import Ops from "../values/ops";
 export default interface Token {
     type: Tokens,
     value?: number | string | Ops
+    line: number
+    col: number
 }

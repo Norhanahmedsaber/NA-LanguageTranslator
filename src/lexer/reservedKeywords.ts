@@ -7,7 +7,8 @@ const ReservedKeywords={
     "break": TokensTypes.BREAK_KEYWORD,
     "default": TokensTypes.DEFAULT_KEYWORD,
     "if": TokensTypes.IF_KEYWORD,
-    "else": TokensTypes.ELSE_KEYWORD
+    "else": TokensTypes.ELSE_KEYWORD,
+    "do" : TokensTypes.DO_KEYWORD
 }
 
 export default ReservedKeywords 
