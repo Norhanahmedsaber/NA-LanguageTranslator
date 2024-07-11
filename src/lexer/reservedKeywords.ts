@@ -6,7 +6,7 @@ const ReservedKeywords={
     "case": TokensTypes.CASE_KEYWORD,
     "break": TokensTypes.BREAK_KEYWORD,
     "default": TokensTypes.DEFAULT_KEYWORD,
-    "if": TokensTypes.IF_KEYWORD,
+    "lw": TokensTypes.IF_KEYWORD,
     "else": TokensTypes.ELSE_KEYWORD,
     "do" : TokensTypes.DO_KEYWORD
 }

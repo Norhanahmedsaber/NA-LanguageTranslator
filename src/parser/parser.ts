@@ -157,7 +157,7 @@ export default class Parser {
         const Children: Node[] = []
         this.eat(TokensTypes.IF_KEYWORD)
         Children.push({
-            Node: "if",
+            Node: "lw",
             Children: []
         })
         this.eat(TokensTypes.LEFTPARENT)
