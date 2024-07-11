@@ -72,7 +72,7 @@ export interface ElseStatement extends Node {
     Node: "ElseStatement"
 }
 export interface SyntaxNode extends Node {
-    Node: ";" | ":" | "{" | "}" | "+" | "-" | "*" | "/" | "=" | "!" | ">" | "<" | "(" | ")" | "if" | "else" | "while" | "switch" | "case" | "break" | "default" | "do" | "for"
+    Node: ";" | ":" | "{" | "}" | "+" | "-" | "*" | "/" | "=" | "!" | ">" | "<" | "(" | ")" | "lw" | "else" | "while" | "switch" | "case" | "break" | "default" | "do" | "for"
 }
 export type UnaryOperator = "+" | "-"
 export type operator = "+" | "-" | "/" | "*"
